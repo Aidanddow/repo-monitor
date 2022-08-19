@@ -1,0 +1,132 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+.bg-grey{
+  background: #e8e8e8;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+.sidebar{
+  width:fit-content;
+  width: 20%;
+  position:sticky;
+  height:100vh;
+  overflow: scroll;
+  background: #ffffff;
+  padding: 1rem;
+  border-right: 1px solid #d0d7de;
+  /* overflow: */
+
+  /* background-color: theme.palette.background.paper */
+}
+.text-grey{
+  color: #58606a;
+}
+a.nounderline {text-decoration: none; }
+
+.repo-card{
+  padding:23px !important;
+}
+.year-button.Mui-selected:hover{
+  background-color: #0969da !important;
+  color: #ffffff;
+}
+.year-button {
+  border-radius: 10px !important;
+}
+
+.year-button.Mui-selected{
+  color: #ffffff;
+  background-color: #0969da !important;
+}
+.blue{
+  border-radius: 5px;
+}
+.scroll{
+  position: static;
+  overflow: scroll;
+  height: 100vh;
+}
+.pt-6{
+  padding-top: 6rem;
+}
+.display-cards{
+  padding: 16px 25px 16px 25px !important;
+}
+.grid-3{
+  display: grid;
+  grid-template-columns: 33.3% 33.3% 33.3%;
+  gap: .5rem;
+  justify-content: center;
+}
+/* .css-46bh2p-MuiCardContent-root {
+  padding: 32px !important;
+} */
+.grid-bt-2{
+  display: grid;
+  grid-template-columns: 3% 33.3% 33.3%;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+.grid-2{
+  display: grid;
+  grid-template-columns: 50% 50%;
+  gap: .5rem;
+  justify-content: center;
+}
+.icon-circle{
+  background: peachpuff;
+  width: 16%;
+  padding: 0.7rem;
+  border-radius: 50%;
+}
+
+.text-sm{
+  font-size: 0.80rem !important;
+}
+
+.text-nm, #outlined-required-label{
+  font-size: 0.85rem;
+  /* overflow: */
+
+  /* background-color: theme.palette.background.paper */
+}
+.text-nm::placeholder{
+  font-size: 0.85rem;
+  /* overflow: */
+
+  /* background-color: theme.palette.background.paper */
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
