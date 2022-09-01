@@ -4,8 +4,8 @@ from rest_framework.routers import DefaultRouter
 
 
 from core.serializers import RepositorySerializer
-from .views import AddRepositoryViewSet, BranchViewSet, CommitDetailView, CurrentUserView, DashboardCount, DeveloperCommitDetailView, DeveloperDetailView, DeveloperGraphView, DeveloperListViewSet, FetchInactiveDevelopers, FetchRepositories, GraphDatabyYear, FetchBranchViewSet, RepositoryDetailViewSet, RepositoryListViewSet, TopRepositories
-# from rest_framework import routers
+from .views import AddRepositoryViewSet, BranchViewSet, CommitDetailView, DashboardCount, DeveloperCommitDetailView, DeveloperDetailView, DeveloperGraphView, DeveloperListViewSet, FetchInactiveDevelopers, FetchRepositories, GraphDatabyYear, FetchBranchViewSet, RepositoryDetailViewSet, RepositoryListViewSet, TopRepositories
+
 
 
 router = DefaultRouter()
@@ -20,7 +20,6 @@ router.register(r'developers', DeveloperListViewSet, basename="developers")
 urlpatterns = [
 
     path('', include(router.urls)),
-
     path('developer-graph/<str:author>/<int:year>/',
          DeveloperGraphView.as_view()),
     path('graph-data/<str:branch>/<int:year>/', GraphDatabyYear.as_view()),
@@ -31,7 +30,6 @@ urlpatterns = [
     path('developers/<int:developer>/', DeveloperDetailView.as_view()),
     path('top-repositories/<int:days>/<int:top>', TopRepositories.as_view()),
     path('inactive-developers/', FetchInactiveDevelopers.as_view()),
-    path('profile/', CurrentUserView.as_view(), name='profile'),
     path('fetch/', FetchRepositories.as_view(), name='fetch'),
 
 
