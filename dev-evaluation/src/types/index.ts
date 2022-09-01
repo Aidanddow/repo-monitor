@@ -2,7 +2,6 @@
 import { ActionType, StateType } from 'typesafe-actions';
 import * as actions from '../actions';
 import rootReducer from '../reducers';
-export * from './accounts';
 export * from './core';
 
 export type Store = StateType<typeof rootReducer>;

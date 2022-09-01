@@ -2,10 +2,6 @@ import { Observable } from 'rxjs';
 import { ajax, AjaxResponse } from 'rxjs/ajax';
 import { APIUrls, CORE_HOST } from '../constants/urls';
 import {
-  LoginPayload,
-  SignupPayload,
-  Email,
-  ForgotPassword,
   RepositoryPayload,
   GraphDataRequest,
   FetchRequest,
@@ -18,22 +14,14 @@ import {
 } from '../types';
 import {
   getConfig,
-  postConfigWithoutToken,
   postConfig,
-  deleteConfig,
   patchConfig
 } from './ApiConfig';
 export interface APIDependencies {
   apis: ProjectApis;
 }
 interface ProjectApis {
-  // login apis
-  login: (data: LoginPayload) => Observable<AjaxResponse<any>>;
-  profile: () => Observable<AjaxResponse<any>>;
-  signup: (data: SignupPayload) => Observable<AjaxResponse<any>>;
-  resetPassword: (data: Email) => Observable<AjaxResponse<any>>;
-  resetConfirmPassword: (data: ForgotPassword) => Observable<AjaxResponse<any>>;
-  logout: () => Observable<AjaxResponse<any>>;
+
   fetchRepositories: () => Observable<AjaxResponse<RepositoryPayload[]>>;
   fetchCurrentRepository: (data: string) => Observable<AjaxResponse<any>>;
   graphData: (data: GraphDataRequest) => Observable<AjaxResponse<any>>;
@@ -69,30 +57,6 @@ export const setToken = (authToken: string) => {
 // log("csrf", csrfToken);
 
 const ProjectApis: ProjectApis = {
-  // login apis
-  login: data =>
-    ajax(postConfigWithoutToken(ConstructURL(CORE_HOST, APIUrls.login), data)),
-  resetPassword: data =>
-    ajax(
-      postConfigWithoutToken(
-        ConstructURL(CORE_HOST, APIUrls.resetPassword),
-        data
-      )
-    ),
-  resetConfirmPassword: data =>
-    ajax(
-      postConfigWithoutToken(
-        ConstructURL(CORE_HOST, APIUrls.confirmResetPassword),
-        data
-      )
-    ),
-  logout: () =>
-    ajax(postConfig(ConstructURL(CORE_HOST, APIUrls.logout), '', token)),
-  signup: data =>
-    ajax(postConfigWithoutToken(ConstructURL(CORE_HOST, APIUrls.signup), data)),
- 
-  profile: () =>
-    ajax(getConfig(ConstructURL(CORE_HOST, APIUrls.profile), token)),
 
 
   fetchRepositories: () => ajax(getConfig(ConstructURL(CORE_HOST, APIUrls.repos), token)),

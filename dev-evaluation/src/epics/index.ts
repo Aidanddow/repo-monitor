@@ -1,5 +1,5 @@
 import { combineEpics } from 'redux-observable';
-import login from './login';
+
 import core from './core';
 /**
  * Root epic will have all the epics combined together
@@ -7,7 +7,6 @@ import core from './core';
  *  * sampleEpic
  */
 const rootEpic = combineEpics(
-  login,
   core,
 );
 

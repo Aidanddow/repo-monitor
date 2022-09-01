@@ -4,34 +4,22 @@ import {
   Avatar,
   Button,
   Card,
-  CardActionArea,
   CardContent,
-  TextField,
   Typography,
 } from '@mui/material';
-import {
-  Chart as ChartJS,
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Legend,
-} from 'chart.js';
 import Tooltip from '@mui/material/Tooltip';
-import { Radar } from 'react-chartjs-2';
 import CalendarHeatmap from 'react-calendar-heatmap';
 import 'react-calendar-heatmap/dist/styles.css';
 import * as actions from '../actions';
 import { useDispatch, useSelector } from 'react-redux';
 import { GraphData, Store } from '../types';
-import GraphSelector from './GraphSelector';
 import YearSelector from './YearSelector';
 import SimpleListMenu from './BranchSelector';
 import DeviceHubIcon from '@mui/icons-material/DeviceHub';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { formatDate } from '../utils';
-import DetailedView from './DetailedView';
+import DetailedView from './RepositoryDetailedView';
 import BackgroundLetterAvatars, {
   stringAvatar,
 } from './BackgroundLetterAvatars';
@@ -69,7 +57,6 @@ const Navbar: React.FC<Props> = (props) => {
   }, [repo]);
 
   useEffect(() => {
-    console.log('entered');
     if (branches[0]) {
       setActiveBranch(branches[0].id);
     }

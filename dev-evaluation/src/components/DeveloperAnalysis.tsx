@@ -70,7 +70,6 @@ const Navbar: React.FC<Props> = (props) => {
   }
 
   const onCellSelect = (value: GraphData)=>{
-    console.log("hello entered", value, dev )
     if(dev){
     dispatch(actions.fetchDevCommits.request({author:+dev, date:value.date}))
     setGraphValue(value)}

@@ -1,13 +1,13 @@
 // export const CORE_HOST = 'http://localhost:8000';
 export const CORE_HOST = '';
 export enum APIUrls {
-  login = '/auth/login/',
-  logout = '/auth/logout/',
-  profile = '/core/profile/',
-  googleLogin = '/auth/google/',
-  resetPassword = '/auth/password/reset/',
-  confirmResetPassword = '/auth/password/reset/confirm/',
-  signup = '/auth/registration/',
+  // login = '/auth/login/',
+  // logout = '/auth/logout/',
+  // profile = '/core/profile/',
+  // googleLogin = '/auth/google/',
+  // resetPassword = '/auth/password/reset/',
+  // confirmResetPassword = '/auth/password/reset/confirm/',
+  // signup = '/auth/registration/',
   current_repository = '/core/repository/',
   repos = '/core/repositories/',
   graphData = '/core/graph-data/',

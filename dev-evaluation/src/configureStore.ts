@@ -29,14 +29,14 @@ export const configStore = (initialStore: {}) => {
 
 export const store = configStore({});
 
-setLocalStorage('PROJECT_TOKEN', 'jhjhj');
-const token = getLocalStorage('PROJECT_TOKEN');
-if (token) {
-  setToken(token);
-  // const payload = {
-  //   authenticated: true,
-  //   success: true,
-  //   token
-  // };
-  store.dispatch(actions.profile.request());
-}
+// setLocalStorage('PROJECT_TOKEN', 'jhjhj');
+// const token = getLocalStorage('PROJECT_TOKEN');
+// if (token) {
+//   setToken(token);
+//   // const payload = {
+//   //   authenticated: true,
+//   //   success: true,
+//   //   token
+//   // };
+//   store.dispatch(actions.profile.request());
+// }

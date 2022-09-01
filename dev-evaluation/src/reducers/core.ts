@@ -66,65 +66,6 @@ export const defaultLoaders: Loaders = {
 export default combineReducers<LoginState, ProjectReduxActions>({
   loaders: (state = defaultLoaders, action) => {
     switch (action.type) {
-      case getType(actions.login.request): {
-        return { ...state, login: APIStatus.progress };
-      }
-      case getType(actions.profile.request): {
-        return {
-          ...state,
-          login: APIStatus.success,
-          profile: APIStatus.progress
-        };
-      }
-      case getType(actions.profile.success): {
-        return {
-          ...state,
-          login: APIStatus.success,
-          profile: APIStatus.success
-        };
-      }
-      case getType(actions.profile.failure): {
-        return { ...state, login: APIStatus.failed, profile: APIStatus.failed };
-      }
-      case getType(actions.login.success): {
-        setLocalStorage('PROJECT_TOKEN', action.payload.token);
-        setToken(action.payload.token);
-        return {
-          ...state,
-          login: APIStatus.success,
-          profile: APIStatus.success
-        };
-      }
-      case getType(actions.login.failure): {
-        return { ...state, login: APIStatus.failed };
-      }
-      case getType(actions.signup.request): {
-        return { ...state, signup: APIStatus.progress };
-      }
-      case getType(actions.signup.success): {
-        return { ...state, signup: APIStatus.success };
-      }
-      case getType(actions.signup.failure): {
-        return { ...state, signup: APIStatus.failed };
-      }
-      case getType(actions.resetPassword.request): {
-        return { ...state, resetPassword: APIStatus.progress };
-      }
-      case getType(actions.resetPassword.success): {
-        return { ...state, resetPassword: APIStatus.success };
-      }
-      case getType(actions.resetPassword.failure): {
-        return { ...state, resetPassword: APIStatus.failed };
-      }
-      case getType(actions.confirmPassword.request): {
-        return { ...state, confirmPassword: APIStatus.progress };
-      }
-      case getType(actions.confirmPassword.success): {
-        return { ...state, confirmPassword: APIStatus.success };
-      }
-      case getType(actions.confirmPassword.failure): {
-        return { ...state, confirmPassword: APIStatus.failed };
-      }
       case getType(actions.fetchAllRepo.request): {
         return { ...state, fetchAllRepos: APIStatus.progress };
       }
@@ -142,11 +83,6 @@ export default combineReducers<LoginState, ProjectReduxActions>({
       }
       case getType(actions.addRepo.failure): {
         return { ...state, addRepo: APIStatus.failed };
-      }
-      case getType(actions.resetLoginStatus): {
-        setLocalStorage('PROJECT_TOKEN', '');
-        setToken('');
-        return { ...state, login: APIStatus.uninitiated };
       }
 
       default:
@@ -262,7 +198,6 @@ export default combineReducers<LoginState, ProjectReduxActions>({
   devProjects: (state = [], action) => {
     switch (action.type) {
       case getType(actions.fetchDevProjects.success): {
-        console.log("enteredabdhclhjsbdc")
         return action.payload;
       }
       default:

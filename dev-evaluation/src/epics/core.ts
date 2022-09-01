@@ -223,7 +223,6 @@ export const fetchEpic: Epic<
       const payload = action.payload;
       return apis.fetch(payload).pipe(
         mergeMap(response => {
-          console.log("lkjdnjsdnkjsdn")
           return of (fetch.success(response.response), 
           fetchGraphData.request({branch: action.payload.branch, year:action.payload.year}))
         }),

@@ -6,7 +6,6 @@ import { APIStatus, Store } from '../types';
 export function RequireAuth({ children }: { children: JSX.Element }) {
     // const is_authenticated  = useSelector((state: Store) => state.login.loaders.login);
     const is_authenticated  = APIStatus.success;
-    console.log("is_authenticated", is_authenticated)
     let location = useLocation();
   
     if (is_authenticated !== APIStatus.success) {

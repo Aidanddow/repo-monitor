@@ -22,21 +22,16 @@ export function stringToColor(string: string) {
     color += `00${value.toString(16)}`.slice(-2);
   }
   /* eslint-enable no-bitwise */
-
-// console.log(hex2rgb("#0080C0"))
-  console.log(color)
   return color;
 }
 export const hex2rgb = (hex: string, opacity:string) => {
   const r = parseInt(hex.slice(1, 3), 16)
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
-  // return {r, g, b} // return an object
   return 'rgba('+r+','+g+','+b+','+opacity+')'
 }
 
 export function stringAvatar(name: string) {
-  // console.log("name", name, name.split(' ')[0][0])
   return {
     sx: {
       bgcolor: stringToColor(name),
@@ -48,9 +43,6 @@ export function stringAvatar(name: string) {
 export default function BackgroundLetterAvatars(props:Props) {
   return (
     <AvatarGroup max={6}>
-      {/* <Avatar {...stringAvatar('Kent Dodds')} />
-      <Avatar {...stringAvatar('Jed Watson')} />
-      <Avatar {...stringAvatar('Tim Neutkens')} /> */}
       {props.children}
     </AvatarGroup>
   );

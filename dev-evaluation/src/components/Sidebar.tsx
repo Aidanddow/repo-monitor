@@ -16,11 +16,8 @@ interface Props {
 
 }
 const Sidebar: React.FC<Props> = props => {
-  // let { repo } = useParams();
-  // console.log("fr", useLocation().pathname.split('/').at(-2))
   const urlParam = useLocation().pathname.split('/').at(-2)
   const [selectedIndex, setSelectedIndex] = React.useState(urlParam?+urlParam:0);
-  // console.log("repo", repo)
   const [open, setOpen] = React.useState(false);
 
   const repositories: RepositoryPayload[] = useSelector((state: Store) => state.core.repositories);

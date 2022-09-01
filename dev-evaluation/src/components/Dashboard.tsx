@@ -98,13 +98,10 @@ const Navbar: React.FC<Props> = (props) => {
   let flatArray: GraphData[] = []
   flatArray = flatArray.concat(...graphData.map(item=>item.data)).sort((a, b) => new Date(a.date__date).getTime() - new Date(b.date__date).getTime())
   const labels_unformatted = flatArray.map((item) => item.date__date)
-// console.log("jbdclkjbdc", [...new Set(labels_unformatted)])
   const labels = [...Array.from(new Set(labels_unformatted))];
-  // console.log(labels);
   const datasets = graphData.map((item) => {
     return {
       label: item.repo,
-      // data: labels.map(label=>item.data.filter(entry=>entry.date__date===label)[0].count)
       data: labels.map((label) =>
         item.data.filter((entry) => entry.date__date === label).length
           ? item.data.filter((entry) => entry.date__date === label)[0].count
