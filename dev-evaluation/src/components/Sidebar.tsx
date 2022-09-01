@@ -49,7 +49,7 @@ const Sidebar: React.FC<Props> = props => {
       </div>
       <div className='d-flex justify-content-between  align-items-center'>
         <b className='text-nm'>
-          Recent Repositories
+          Repositories
         </b>
         <Button variant="contained" color="success" size="small" onClick={()=>setOpen(true)}>
   Add

@@ -14,6 +14,7 @@ dev-evaluation/build
 
 # misc
 migrations/
+backend/EventsGow/
 backend/asianoddsgambler-panel/
 backend/junit5/
 backend/pampas/

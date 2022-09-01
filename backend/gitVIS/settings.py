@@ -38,7 +38,10 @@ DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = [
     "http://13.232.126.97",
-    "13.232.126.97"
+    "13.232.126.97",
+    "localhost",
+    "127.0.0.1"
+
 ]
 
 CORS_ALLOWED_ORIGINS = [
