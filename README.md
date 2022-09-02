@@ -13,12 +13,16 @@ If you just want to get the application up and running on your local machine, fo
 Now clone the project, install its dependencies and then run the development server.
 
 1. `git clone https://github.com/najmathummer/Team-Evaluator.git`
-2. `cd backend`
-3. `pipenv install`
-4. `pipenv shell`
-5. `python manage.py makemigrations core`
-6. `python manage.py migrate`
-7. `python manage.py runserver` (substitute `python` with `python3` if you're running into issues)
+2. `cd Team-Evaluator`
+3. `cd backend`
+4. `pipenv install`
+5. `pipenv shell`
+6. Create a file named `.env` and copy the contents of `.env_sample` to it. You should change the `SECURITY_KEY` value to a secret value of your choosing.
+7. `python manage.py makemigrations core`
+8. `python manage.py migrate`
+9. `python manage.py runserver` (substitute `python` with `python3` if you're running into issues)
+
+The web app should now be running and available at http://127.0.0.1:8000. To setup some repositories, you may refer the "Example Repositories" section below.
 
 ## Building locally
 If you would like to make changes to the source code and tinker with the project, read on to find out how to rebuild the application.<br>
