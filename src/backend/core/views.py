@@ -31,12 +31,13 @@ class AddRepositoryViewSet(viewsets.ViewSet):
 
     def process_commits(self, commits, branch, repository):
         for commit in commits:
+            print("Commit: ", commit.message.strip())
             total_files = commit.stats.total['files']
             total_lines = commit.stats.total['lines']
             commit_id = commit.hexsha
             branch_id = Branch.objects.get_or_create(
                 branch_name=branch.remote_head, repo=repository)[0]
-            message = commit.message
+            message = commit.message.strip()
             author = Developer.objects.get_or_create(username=commit.author)[0]
             repository.developers.add(author)
             date = commit.authored_datetime
@@ -342,9 +343,9 @@ API which returns the details of commits of a developer
 class DeveloperCommitDetailView(APIView):
 
     def get(self, request, *args, **kwargs):
-
         distinct_commit_hash = CommitModel.objects.filter(author__id=kwargs.get('author'), date__date=kwargs.get(
-            'date')).values('commit_hash').distinct().values('commit_hash', 'repo', 'total_files', 'total_lines', 'author')
+            'date')).values('commit_hash').distinct().values('commit_hash', 'message', 'repo', 'total_files', 'total_lines', 'author')
+        print("D", distinct_commit_hash)
         serializer = DevCommitSerializer(distinct_commit_hash, many=True)
         return Response(serializer.data)
 
