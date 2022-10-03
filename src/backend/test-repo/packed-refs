@@ -1,0 +1,18 @@
+# pack-refs with: peeled fully-peeled sorted 
+71ce433cd98f899c723184b9ea1e0bcdf97d5c1a refs/heads/branch-a
+5551c9980c9ff2b94865596df35e38527d9fcfbd refs/heads/branch-d
+492cf2cda6c2452410d3760e7bbecf034b3079ef refs/heads/master
+abd52ae85f340628fe9d551520d4d8159f3a1995 refs/heads/master-bar
+abd52ae85f340628fe9d551520d4d8159f3a1995 refs/heads/master-foo
+abd52ae85f340628fe9d551520d4d8159f3a1995 refs/heads/masterfoo
+3de11d7640ed17f93ce38d31c9dea0fd65774077 refs/heads/orph
+f5eee554aecbee6f2f8e18de089476c3bf957ddc refs/heads/release/1.2.3
+72cab056e6a95fbb4e7ea3f0e1644a7eef345a2d refs/heads/temp
+6e3325f7dc37f67b48e719de1ce4a4c9d33d1042 refs/heads/v1/foo/bar
+c55e6953ff343f9eeb42dc04eb6aa5dfed6f0756 refs/heads/v1/nix
+703de123eaa9832f4ce15baf6b702cd7f72fea5a refs/tags/meh
+8f3d75c010a30babe3ee8a4176bb16136c5949b3 refs/tags/v1.2.3
+adbb090758d7bc201a35b5a7a470a3c01a3e5a95 refs/tags/wip-001
+a05c54d8623558963b8774bb01962fe0683c46bf refs/tags/wip-002
+d3e906333be8a6ff09f96e827199d51694a16dc1 refs/tags/wip-003
+030cc2b97d8ecbf07b7bd361105f07e631393f00 refs/tags/wip-r/1
