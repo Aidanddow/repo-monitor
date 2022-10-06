@@ -6,4 +6,4 @@
 
 * Monday 03/10/22 (4 hours): Read "Effort Estimation by Characterizing Developer Activity" paper. Begun familiarizing myself with existing codebase. Implemented a small change to the codebase (Show commit message in table)
 
-* Wednesday 05/10/22 (2 hours): Read papers "Do developers care about code smells" and "Measuring developer contribution from software repository data". Installed and setup Zotero for reference management. Watched 
+* Wednesday 05/10/22 (2 hours): Read papers "Do developers care about code smells" and "Measuring developer contribution from software repository data". Installed and setup Zotero for reference management. Read lecture slide guidance on undergoing project

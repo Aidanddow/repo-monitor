@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import viewsets
 from core.models import Branch, Commit as CommitModel, Developer, Repository
 from git import *
+from git import Repo
 from core.serializers import BranchSerializer, DevCommitSerializer, CommitSerializer, DeveloperSerializer, RepositorySerializer, GraphSerializer
 from rest_framework.views import APIView
 from django.db.models import Count, Sum
@@ -16,7 +17,6 @@ API when a repository is added.
  -> It will store commits in branches 'main'/ 'master'
 
 '''
-
 
 class AddRepositoryViewSet(viewsets.ViewSet):
 
@@ -86,11 +86,12 @@ class AddRepositoryViewSet(viewsets.ViewSet):
             repo_path_with_cred = repo_path
         return repo_path_with_cred
 
-    def clone_repo(self, request, repo_path, repo_name):
-        if not os.path.isdir(repo_name):
-            os.mkdir(repo_name)
+    def clone_repo(self, request, repo_path, repo_name, folder_name="repos"):
+        repo_file_path = os.path.join(folder_name, repo_name)
+        if not os.path.isdir(repo_file_path):
+            os.mkdir(repo_file_path)
             repo_path_with_cred = self.get_repo_credenitals(request, repo_path)
-            Repo.clone_from(repo_path_with_cred, repo_name, bare=True)
+            Repo.clone_from(repo_path_with_cred, to_path=repo_file_path, bare=True)
 
     def create(self, request):
         repo_path = self.get_repo_path(request)
