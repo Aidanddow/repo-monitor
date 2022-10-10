@@ -37,7 +37,7 @@ export default function BasicModal(props: Props) {
     const payload:  AddRepo = {
         username,
         password,
-        repo_path: repoPath
+        repo_url : repoPath
     }
     dispatch(actions.addRepo.request(payload));
 

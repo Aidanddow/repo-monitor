@@ -1,6 +1,6 @@
 export interface RepositoryPayload {
   id: number;
-  repo_path: string;
+  repo_url: string;
   repo_name: string;
   developers: Developer[];
   last_authored_date: string;
@@ -27,7 +27,7 @@ export interface ArchiveRepo {
 }
 
 export interface AddRepo {
-  repo_path: string;
+  repo_url: string;
   username: string;
   password: string;
 }
