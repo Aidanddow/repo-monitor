@@ -4,7 +4,6 @@ from rest_framework.response import Response
 from rest_framework import viewsets
 from core.models import Branch, Commit as CommitModel, Developer, Repository
 from git import *
-from git import Repo
 from core.serializers import BranchSerializer, DevCommitSerializer, CommitSerializer, DeveloperSerializer, RepositorySerializer, GraphSerializer
 from rest_framework.views import APIView
 from django.db.models import Count, Sum
@@ -17,6 +16,7 @@ API when a repository is added.
  -> It will store commits in branches 'main'/ 'master'
 
 '''
+
 
 class AddRepositoryViewSet(viewsets.ViewSet):
 
@@ -31,13 +31,12 @@ class AddRepositoryViewSet(viewsets.ViewSet):
 
     def process_commits(self, commits, branch, repository):
         for commit in commits:
-            print("Commit: ", commit.message.strip())
             total_files = commit.stats.total['files']
             total_lines = commit.stats.total['lines']
             commit_id = commit.hexsha
             branch_id = Branch.objects.get_or_create(
                 branch_name=branch.remote_head, repo=repository)[0]
-            message = commit.message.strip()
+            message = commit.message
             author = Developer.objects.get_or_create(username=commit.author)[0]
             repository.developers.add(author)
             date = commit.authored_datetime
@@ -86,12 +85,11 @@ class AddRepositoryViewSet(viewsets.ViewSet):
             repo_path_with_cred = repo_path
         return repo_path_with_cred
 
-    def clone_repo(self, request, repo_path, repo_name, folder_name="repos"):
-        repo_file_path = os.path.join(folder_name, repo_name)
-        if not os.path.isdir(repo_file_path):
-            os.mkdir(repo_file_path)
+    def clone_repo(self, request, repo_path, repo_name):
+        if not os.path.isdir(repo_name):
+            os.mkdir(repo_name)
             repo_path_with_cred = self.get_repo_credenitals(request, repo_path)
-            Repo.clone_from(repo_path_with_cred, to_path=repo_file_path, bare=True)
+            Repo.clone_from(repo_path_with_cred, repo_name, bare=True)
 
     def create(self, request):
         repo_path = self.get_repo_path(request)
@@ -344,9 +342,9 @@ API which returns the details of commits of a developer
 class DeveloperCommitDetailView(APIView):
 
     def get(self, request, *args, **kwargs):
+
         distinct_commit_hash = CommitModel.objects.filter(author__id=kwargs.get('author'), date__date=kwargs.get(
-            'date')).values('commit_hash').distinct().values('commit_hash', 'message', 'repo', 'total_files', 'total_lines', 'author')
-        print("D", distinct_commit_hash)
+            'date')).values('commit_hash').distinct().values('commit_hash', 'repo', 'total_files', 'total_lines', 'author')
         serializer = DevCommitSerializer(distinct_commit_hash, many=True)
         return Response(serializer.data)
 

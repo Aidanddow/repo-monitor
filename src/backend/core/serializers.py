@@ -41,7 +41,7 @@ class DevCommitSerializer(serializers.ModelSerializer):
     # author =DeveloperSerializer(read_only=True)
     class Meta:
         model = Commit
-        fields = ('commit_hash', 'message', 'repo', 'total_files', 'total_lines', 'author' )
+        fields = ('commit_hash', 'repo', 'total_files', 'total_lines', 'author' )
         # depth = 1
 
 
