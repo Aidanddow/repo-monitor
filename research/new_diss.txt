@@ -291,7 +291,7 @@ Must Have
  Save the bare repository to the local file system.
  4.
  Save the
- repository with the corresponding repo_name and repo_path to the ‘Repository’ table.
+ repository with the corresponding repo_name and repo_url to the ‘Repository’ table.
  5.
  Save all the branches of the repository in
  the database Branch table [Appendix A.2].
@@ -322,7 +322,7 @@ Must Have
  Use the date of the last commit of this branch as the last authored date
  of the repo.
  With the above sets, a remote repository is imported into the application database, and its relevant fields
- are set, such as repo_name, repo_path, start_date, last_authored_date.
+ are set, such as repo_name, repo_url, start_date, last_authored_date.
  The main branch and most recent branch is also saved in the
  database for easy querying of data.
  Hence, the repository metadata is stored in an easy to access (and easy to

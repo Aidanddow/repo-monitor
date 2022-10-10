@@ -69,10 +69,10 @@ class AddRepositoryViewSet(viewsets.ViewSet):
             initial_branch.remote_head))[-1].authored_datetime
         repository.save()
 
-    def save_repo_model(self, repo_path, repo_name):
+    def save_repo_model(self, repo_url, repo_name):
         repo_serializer = RepositorySerializer(
             data = {
-                "repo_path": repo_path, 
+                "repo_url": repo_url, 
                 "repo_name": repo_name
             }
         )
@@ -98,8 +98,8 @@ class AddRepositoryViewSet(viewsets.ViewSet):
         repo_save_folder = os.path.dirname(repo_save_path)
         if not os.path.isdir(repo_save_folder):
             os.mkdir(repo_save_folder)
-        repo_path_with_cred = self.get_repo_credenitals(request, repo_url)
-        Repo.clone_from(repo_path_with_cred, to_path=repo_save_path, bare=True)
+        repo_url_with_cred = self.get_repo_credenitals(request, repo_url)
+        Repo.clone_from(repo_url_with_cred, to_path=repo_save_path, bare=True)
 
     def create(self, request):
         repo_url = self.get_repo_url(request)
@@ -179,8 +179,8 @@ class PerformFetch:
 
     def fetch_branch(self, repo_requested, branch_requested, year_requested):
         print("REPO REQUESTED: ",repo_requested)
-        repo = Repo(repo_requested)
         repository = self.get_repo(repo_requested)
+        repo = Repo(repository.get_file_path())
         self.fetch_repo(repo, repository)
         active_branch = Branch.objects.get(pk=branch_requested)
         commit_diff_string = self.get_commit_diff_string(active_branch, repo)
@@ -190,8 +190,8 @@ class PerformFetch:
         active_branch.save()
 
     def fetch_latest_branch(self, repo_requested, year_requested):
-        repo = Repo(repo_requested)
         repository = self.get_repo(repo_requested)
+        repo = Repo(repository.get_file_path())
         self.fetch_repo(repo, repository)
         repo_ = BasicRepoUtils()
         active_branch = repo_.get_latest_branch(
@@ -250,8 +250,8 @@ class RepositoryDetailViewSet(viewsets.ViewSet):
     def retrieve(self, request, pk=None):
         repository = Repository.objects.get(id=pk)
         repo_name = repository.repo_name
-        repo_path = repository.get_file_path()
-        repo = Repo(repo_path)
+        repo_file_path = repository.get_file_path()
+        repo = Repo(repo_file_path)
         branches = BasicRepoUtils().sort_branches(
             repo, Branch.objects.filter(repo__id=pk))
         PerformFetch().fetch_branch(
@@ -292,14 +292,14 @@ class BasicRepoUtils:
 API which lists all branches of the repo requested
 '''
 
-
+# /Users/aidan/repo-monitor/src/backend/static/js/main.a5d19287.js
 class BranchViewSet(viewsets.ViewSet):
     slug = 'repo_id'
 
     def retrieve(self, request, pk=None):
         repo_name = Repository.objects.get(id=pk).repo_name
-        repo_path = Repository.objects.get(id=pk).get_file_path()
-        repo = Repo(repo_path)
+        repo_file_path = Repository.objects.get(id=pk).get_file_path()
+        repo = Repo(repo_file_path)
         branches = BasicRepoUtils().sort_branches(
             repo, Branch.objects.filter(repo__id=pk))
         PerformFetch().fetch_branch(
