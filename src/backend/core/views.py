@@ -20,8 +20,8 @@ API when a repository is added.
 
 class AddRepositoryViewSet(viewsets.ViewSet):
 
-    def get_url(self, repo_path):
-        return repo_path.split("//")[-1]
+    def get_url(self, repo_url):
+        return repo_url.split("//")[-1]
 
     def get_commits_from_branch(self, repo, branch):
         end_date = branch.commit.authored_datetime.date()
@@ -31,20 +31,24 @@ class AddRepositoryViewSet(viewsets.ViewSet):
 
     def process_commits(self, commits, branch, repository):
         for commit in commits:
-            print("Commit: ", commit.message.strip())
-            total_files = commit.stats.total['files']
-            total_lines = commit.stats.total['lines']
-            commit_id = commit.hexsha
-            branch_id = Branch.objects.get_or_create(
-                branch_name=branch.remote_head, repo=repository)[0]
-            message = commit.message.strip()
-            author = Developer.objects.get_or_create(username=commit.author)[0]
+            
+            author, _ = Developer.objects.get_or_create(username=commit.author)
             repository.developers.add(author)
-            date = commit.authored_datetime
-            commit_modal = CommitModel(commit_hash=commit_id, repo=repository, branch=branch_id, date=date,
-                                       author=author, message=message, total_files=total_files, total_lines=total_lines)
-            commit_modal.save()
-
+            branch_id, _ = Branch.objects.get_or_create(
+                                branch_name=branch.remote_head, 
+                                repo=repository )
+            
+            commit_model = CommitModel({
+                "repo" : repository, 
+                "author" : author,  
+                "branch" : branch_id, 
+                "commit_hash" : commit.hexsha,
+                "date" : commit.authored_datetime,
+                "message" : commit.message.strip(), 
+                "total_files" : commit.stats.total['files'],
+                "total_lines" : commit.stats.total['lines'],
+            })
+        
     def process_branches(self, repo, repository):
 
         current_branch = None
@@ -55,6 +59,7 @@ class AddRepositoryViewSet(viewsets.ViewSet):
             if branch.remote_head in ['main', 'master'] and current_branch is None:
                 current_branch = branch
                 current_branch.last_fetch_date = datetime.datetime.now()
+
         self.process_commits(self.get_commits_from_branch(
             repo, current_branch), current_branch, repository)
         self.set_start_date(repo, repository, current_branch)
@@ -64,48 +69,55 @@ class AddRepositoryViewSet(viewsets.ViewSet):
             initial_branch.remote_head))[-1].authored_datetime
         repository.save()
 
-    def save_repo(self, repo_path, repo_name):
+    def save_repo_model(self, repo_path, repo_name):
         repo_serializer = RepositorySerializer(
-            data={"repo_path": repo_path, "repo_name": repo_name})
+            data = {
+                "repo_path": repo_path, 
+                "repo_name": repo_name
+            }
+        )
         repo_serializer.is_valid(raise_exception=True)
         repo_serializer.save()
 
-    def get_repo_path(self, request):
-        return request.data['repo_path']
+    def get_repo_url(self, request):
+        return request.data['repo_url']
 
     def fetch_repo(self, repo):
         repo.remotes.origin.fetch('+refs/heads/*:refs/remotes/origin/*')
 
-    def get_repo_credenitals(self, request, repo_path):
-        username = request.data['username']
-        if len(username) > 0:
-            repo_url = self.get_url(repo_path)
+    def get_repo_credenitals(self, request, repo_url):
+        if username := request.data['username']:
+            repo_url = self.get_url(repo_url)
             password = request.data['password']
-            repo_path_with_cred = f"https://{username}:{password}@{repo_url}"
+            repo_url_with_cred = f"https://{username}:{password}@{repo_url}"
         else:
-            repo_path_with_cred = repo_path
-        return repo_path_with_cred
+            repo_url_with_cred = repo_url
+        return repo_url_with_cred
 
-    def clone_repo(self, request, repo_path, repo_name, folder_name="repos"):
-        repo_file_path = os.path.join(folder_name, repo_name)
-        if not os.path.isdir(repo_file_path):
-            os.mkdir(repo_file_path)
-            repo_path_with_cred = self.get_repo_credenitals(request, repo_path)
-            Repo.clone_from(repo_path_with_cred, to_path=repo_file_path, bare=True)
+    def clone_repo(self, request, repo_url, repo_save_path):
+        repo_save_folder = os.path.dirname(repo_save_path)
+        if not os.path.isdir(repo_save_folder):
+            os.mkdir(repo_save_folder)
+        repo_path_with_cred = self.get_repo_credenitals(request, repo_url)
+        Repo.clone_from(repo_path_with_cred, to_path=repo_save_path, bare=True)
 
     def create(self, request):
-        repo_path = self.get_repo_path(request)
-        repo_name = repo_path.split("/")[-1].split(".")[0]
-        self.clone_repo(request, repo_path, repo_name)
-        repo = Repo(repo_name)
+        repo_url = self.get_repo_url(request)
+        repo_name = repo_url.split("/")[-1].split(".")[0]
+        repo_save_path = os.path.join("repos", repo_name)
+        self.clone_repo(request, repo_url, repo_save_path)
+        repo = Repo(repo_save_path)
         self.fetch_repo(repo)
-        self.save_repo(repo_path, repo_name)
-        repository = Repository.objects.filter(repo_name=repo_name)[0]
+        self.save_repo_model(repo_url, repo_name)
+        repository = Repository.objects.get(repo_name=repo_name)
         self.process_branches(repo, repository)
         repo_ = BasicRepoUtils()
         repo_.set_last_authored_date(
             repo, repository, Branch.objects.filter(repo__id=repository.id))
-        return Response({"success": "True"})
+        print("EVerything has worked@!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        return Response( {
+            "success": "True"
+        })
 
 
 '''
@@ -166,6 +178,7 @@ class PerformFetch:
                     branch_name=branch.remote_head, repo=repository)
 
     def fetch_branch(self, repo_requested, branch_requested, year_requested):
+        print("REPO REQUESTED: ",repo_requested)
         repo = Repo(repo_requested)
         repository = self.get_repo(repo_requested)
         self.fetch_repo(repo, repository)
@@ -201,6 +214,7 @@ class FetchBranchViewSet(viewsets.ViewSet):
         repo_requested = request.data['repo']
         branch_requested = request.data['branch']
         year_requested = request.data['year']
+        print("Data:", request.data)
         PerformFetch().fetch_branch(repo_requested, branch_requested, year_requested)
         return Response({"success": "True"})
 
@@ -235,8 +249,9 @@ class RepositoryDetailViewSet(viewsets.ViewSet):
 
     def retrieve(self, request, pk=None):
         repository = Repository.objects.get(id=pk)
-        repo_name = Repository.objects.get(id=pk).repo_name
-        repo = Repo(repo_name)
+        repo_name = repository.repo_name
+        repo_path = repository.get_file_path()
+        repo = Repo(repo_path)
         branches = BasicRepoUtils().sort_branches(
             repo, Branch.objects.filter(repo__id=pk))
         PerformFetch().fetch_branch(
@@ -283,7 +298,8 @@ class BranchViewSet(viewsets.ViewSet):
 
     def retrieve(self, request, pk=None):
         repo_name = Repository.objects.get(id=pk).repo_name
-        repo = Repo(repo_name)
+        repo_path = Repository.objects.get(id=pk).get_file_path()
+        repo = Repo(repo_path)
         branches = BasicRepoUtils().sort_branches(
             repo, Branch.objects.filter(repo__id=pk))
         PerformFetch().fetch_branch(

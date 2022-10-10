@@ -1,6 +1,7 @@
 from datetime import datetime
 from email import message
 from django.db import models
+import os
 from django.contrib.auth.models import AbstractUser
 
 
@@ -19,7 +20,7 @@ class Developer(models.Model):
         return self.username
 
 class Repository(models.Model):
-    repo_path = models.CharField(max_length=100, unique=True)
+    repo_url = models.CharField(max_length=100, unique=True)
     repo_name = models.CharField(max_length=50)
     developers = models.ManyToManyField(Developer)
     archived = models.BooleanField(default=False)
@@ -29,6 +30,9 @@ class Repository(models.Model):
 
     def __str__(self):
         return self.repo_name
+
+    def get_file_path(self):
+        return os.path.join("repos", self.repo_name)
 
 class Branch(models.Model):
     branch_name = models.CharField(max_length=50)
