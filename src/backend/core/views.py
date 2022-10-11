@@ -4,7 +4,6 @@ import os
 from rest_framework.response import Response
 from rest_framework import viewsets
 from core.models import Branch, Commit as CommitModel, Developer, Repository
-from git import *
 from git import Repo
 from core.serializers import BranchSerializer, DevCommitSerializer, CommitSerializer, DeveloperSerializer, RepositorySerializer, GraphSerializer
 from rest_framework.views import APIView
@@ -119,7 +118,6 @@ class AddRepositoryViewSet(viewsets.ViewSet):
 
 
 
-
 class PerformFetch:
     '''
     Functions related to fetch.
@@ -204,7 +202,6 @@ class PerformFetch:
 
 
 
-
 class FetchBranchViewSet(viewsets.ViewSet):
     '''
     API which fetches the requested branch
@@ -265,27 +262,27 @@ class RepositoryDetailViewSet(viewsets.ViewSet):
 
 
 
-
-
 class BasicRepoUtils:
     '''
     Class which provides basic repository utilities
     '''
-
+    @staticmethod
     def sort_branches(repo, branches):
         return sorted((branch for branch in branches), key=lambda branch: repo.rev_parse('origin/' + branch.branch_name).authored_datetime, reverse=True)
 
+    @staticmethod
     def get_latest_authored_date(repo_name):
         return Repository.objects.get(repo_name=repo_name).last_authored_date
 
+    @staticmethod
     def set_last_authored_date(repo, repository, branches):
         repository.last_authored_date = repo.rev_parse(
             'origin/' + BasicRepoUtils.get_latest_branch(repo, branches).branch_name).authored_datetime
         repository.save()
 
+    @staticmethod
     def get_latest_branch(repo, branches):
         return BasicRepoUtils.sort_branches(repo, branches)[0]
-
 
 
 class BranchViewSet(viewsets.ViewSet):
@@ -305,8 +302,6 @@ class BranchViewSet(viewsets.ViewSet):
             repo_name, branches[0].id, datetime.datetime.now().year)
         serializer = BranchSerializer(branches, many=True)
         return Response(serializer.data)
-
-
 
 
 
@@ -334,8 +329,6 @@ class DeveloperListViewSet(viewsets.ViewSet):
 
 
 
-
-
 class CommitDetailView(APIView):
     '''
     API which returns the details of commits of a branch
@@ -352,7 +345,6 @@ class CommitDetailView(APIView):
 
 
 
-
 class DeveloperCommitDetailView(APIView):
     '''
     API which returns the details of commits of a developer
@@ -363,7 +355,6 @@ class DeveloperCommitDetailView(APIView):
             'date')).values('commit_hash').distinct().values('commit_hash', 'message', 'repo', 'total_files', 'total_lines', 'author')
         serializer = DevCommitSerializer(distinct_commit_hash, many=True)
         return Response(serializer.data)
-
 
 
 
@@ -401,6 +392,7 @@ class TopRepositories(APIView):
 
         repositories = Repository.objects.filter(
             last_authored_date__gt=last_specified_day, archived=False)
+        
         repo_data = []
         for repo in repositories:
             latest_branch = BasicRepoUtils.get_latest_branch(
@@ -414,7 +406,13 @@ class TopRepositories(APIView):
             lines_sum = data.aggregate(lines_sum=Sum('sum'))
             serializer = GraphSerializer(data, many=True)
             repo_data.append(
-                {"repo": repo.repo_name, "commit_count": commit_count['commit_count'], 'lines_sum': lines_sum['lines_sum'], 'data': serializer.data})
+                {
+                    "repo": repo.repo_name, 
+                    "commit_count": commit_count['commit_count'], 
+                    'lines_sum': lines_sum['lines_sum'], 
+                    'data': serializer.data
+                })
+
         sorted_repos = sorted(
             repo_data, key=lambda x: x['commit_count'], reverse=True)
         return Response(sorted_repos[0:top_n])

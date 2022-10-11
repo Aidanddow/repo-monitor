@@ -5,8 +5,7 @@ Design 3.2
  of supervising student developers and settings tasks and sprints weekly for them.
  As discussed earlier, the basic objective of the
  project is to provide an effective visualisation to enable the evaluation of developer contributions in a multi-developer, multi-repository environment.
- The
- project is developed as a web application to reduce the overhead involved with installation and compatibility issues on several machines.
+ The project is developed as a web application to reduce the overhead involved with installation and compatibility issues on several machines.
  The web approach also provides advantages down the line like relatively hassle-free updates.
  The requirement for this application are as
  follows:- Functional Requirements User Interface The core part of any application is the user interface.
