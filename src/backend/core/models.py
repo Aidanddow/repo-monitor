@@ -26,6 +26,7 @@ class Repository(models.Model):
     archived = models.BooleanField(default=False)
     start_date = models.DateTimeField(blank=True, null=True)
     last_authored_date = models.DateTimeField(blank=True, null=True)
+    repo = None
     # has_access = models.ManyToManyField(CustomUser)
 
     def __str__(self):
