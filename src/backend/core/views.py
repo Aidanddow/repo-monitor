@@ -1,27 +1,25 @@
+
 import datetime
 import os
 from rest_framework.response import Response
 from rest_framework import viewsets
 from core.models import Branch, Commit as CommitModel, Developer, Repository
-from git import *
+from git import Repo
 from core.serializers import BranchSerializer, DevCommitSerializer, CommitSerializer, DeveloperSerializer, RepositorySerializer, GraphSerializer
 from rest_framework.views import APIView
 from django.db.models import Count, Sum
 
 
-'''
-API when a repository is added.
- -> It will create the bare repository in the folder and will store repo details in the DB
- -> It will store all the branches in DB
- -> It will store commits in branches 'main'/ 'master'
-
-'''
-
-
 class AddRepositoryViewSet(viewsets.ViewSet):
+    '''
+    API when a repository is added.
+    -> It will create the bare repository in the folder and will store repo details in the DB
+    -> It will store all the branches in DB
+    -> It will store commits in branches 'main'/ 'master'
+    '''
 
-    def get_url(self, repo_path):
-        return repo_path.split("//")[-1]
+    def get_url(self, repo_url):
+        return repo_url.split("//")[-1]
 
     def get_commits_from_branch(self, repo, branch):
         end_date = branch.commit.authored_datetime.date()
@@ -31,90 +29,102 @@ class AddRepositoryViewSet(viewsets.ViewSet):
 
     def process_commits(self, commits, branch, repository):
         for commit in commits:
-            print("Commit: ", commit.message.strip())
-            total_files = commit.stats.total['files']
-            total_lines = commit.stats.total['lines']
-            commit_id = commit.hexsha
-            branch_id = Branch.objects.get_or_create(
-                branch_name=branch.remote_head, repo=repository)[0]
-            message = commit.message.strip()
-            author = Developer.objects.get_or_create(username=commit.author)[0]
+            
+            author, _ = Developer.objects.get_or_create(username=commit.author)
             repository.developers.add(author)
-            date = commit.authored_datetime
-            commit_modal = CommitModel(commit_hash=commit_id, repo=repository, branch=branch_id, date=date,
-                                       author=author, message=message, total_files=total_files, total_lines=total_lines)
-            commit_modal.save()
-
-    def process_branches(self, repo, repository):
+            branch_id, _ = Branch.objects.get_or_create(
+                                branch_name=branch.remote_head, 
+                                repo=repository )
+            
+            commit_model = CommitModel({
+                "repo" : repository, 
+                "author" : author,  
+                "branch" : branch_id, 
+                "commit_hash" : commit.hexsha,
+                "date" : commit.authored_datetime,
+                "message" : commit.message.strip(), 
+                "total_files" : commit.stats.total['files'],
+                "total_lines" : commit.stats.total['lines'],
+            })
+        
+    def process_branches(self, repo, repo_model):
 
         current_branch = None
         for branch in repo.remote().refs:
 
             Branch.objects.create(
-                branch_name=branch.remote_head, repo=repository)
+                branch_name=branch.remote_head, repo=repo_model)
             if branch.remote_head in ['main', 'master'] and current_branch is None:
                 current_branch = branch
                 current_branch.last_fetch_date = datetime.datetime.now()
-        self.process_commits(self.get_commits_from_branch(
-            repo, current_branch), current_branch, repository)
-        self.set_start_date(repo, repository, current_branch)
+
+        commits = self.get_commits_from_branch(repo, current_branch)
+        self.process_commits(commits, current_branch, repo_model)
+        self.set_start_date(repo, repo_model, current_branch)
 
     def set_start_date(self, repo, repository, initial_branch):
         repository.start_date = list(repo.iter_commits(
             initial_branch.remote_head))[-1].authored_datetime
         repository.save()
 
-    def save_repo(self, repo_path, repo_name):
+    def save_repo_model(self, repo_url, repo_name):
         repo_serializer = RepositorySerializer(
-            data={"repo_path": repo_path, "repo_name": repo_name})
+            data = {
+                "repo_url": repo_url, 
+                "repo_name": repo_name
+            }
+        )
         repo_serializer.is_valid(raise_exception=True)
         repo_serializer.save()
 
-    def get_repo_path(self, request):
-        return request.data['repo_path']
+    def get_repo_url(self, request):
+        return request.data['repo_url']
 
     def fetch_repo(self, repo):
         repo.remotes.origin.fetch('+refs/heads/*:refs/remotes/origin/*')
 
-    def get_repo_credenitals(self, request, repo_path):
-        username = request.data['username']
-        if len(username) > 0:
-            repo_url = self.get_url(repo_path)
+    def get_repo_credenitals(self, request, repo_url):
+        if username := request.data['username']:
+            repo_url = self.get_url(repo_url)
             password = request.data['password']
-            repo_path_with_cred = f"https://{username}:{password}@{repo_url}"
+            repo_url_with_cred = f"https://{username}:{password}@{repo_url}"
         else:
-            repo_path_with_cred = repo_path
-        return repo_path_with_cred
+            repo_url_with_cred = repo_url
+        return repo_url_with_cred
 
-    def clone_repo(self, request, repo_path, repo_name):
-        if not os.path.isdir(repo_name):
-            os.mkdir(repo_name)
-            repo_path_with_cred = self.get_repo_credenitals(request, repo_path)
-            Repo.clone_from(repo_path_with_cred, repo_name, bare=True)
+    def clone_repo(self, request, repo_url, repo_save_path):
+        repo_save_folder = os.path.dirname(repo_save_path)
+        if not os.path.isdir(repo_save_folder):
+            os.mkdir(repo_save_folder)
+        repo_url_with_cred = self.get_repo_credenitals(request, repo_url)
+        Repo.clone_from(repo_url_with_cred, to_path=repo_save_path, bare=True)
 
     def create(self, request):
-        repo_path = self.get_repo_path(request)
-        repo_name = repo_path.split("/")[-1].split(".")[0]
-        self.clone_repo(request, repo_path, repo_name)
-        repo = Repo(repo_name)
+        repo_url = self.get_repo_url(request)
+        repo_name = repo_url.split("/")[-1].split(".")[0]
+        repo_save_path = os.path.join("repos", repo_name)
+        self.clone_repo(request, repo_url, repo_save_path)
+        repo = Repo(repo_save_path)
         self.fetch_repo(repo)
-        self.save_repo(repo_path, repo_name)
-        repository = Repository.objects.filter(repo_name=repo_name)[0]
-        self.process_branches(repo, repository)
-        repo_ = BasicRepoUtils()
-        repo_.set_last_authored_date(
-            repo, repository, Branch.objects.filter(repo__id=repository.id))
-        return Response({"success": "True"})
+        self.save_repo_model(repo_url, repo_name)
+        repo_model = Repository.objects.get(repo_name=repo_name)
+        self.process_branches(repo, repo_model)
+        BasicRepoUtils.set_last_authored_date(
+            repo, repo_model, Branch.objects.filter(repo__id=repo_model.id))
+        return Response( {
+            "success": "True"
+        })
 
 
-'''
-Functions related to fetch.
- -> It will store commits in branch which is fetched
- -> It will store additional branches if any
-'''
 
 
 class PerformFetch:
+    '''
+    Functions related to fetch.
+    -> It will store commits in branch which is fetched
+    -> It will store additional branches if any
+    '''
+
     def get_repo(self, repo_requested):
         repository = Repository.objects.filter(repo_name=repo_requested)[0]
         return repository
@@ -122,8 +132,8 @@ class PerformFetch:
     def fetch_repo(self, repo, repository):
         repo.remotes.origin.fetch('+refs/heads/*:refs/remotes/origin/*')
         self.save_new_branches(repo, repository)
-        repo_ = BasicRepoUtils()
-        repo_.set_last_authored_date(
+        
+        BasicRepoUtils.set_last_authored_date(
             repo, repository, Branch.objects.filter(repo__id=repository.id))
 
     def get_commit_diff_string(self, active_branch, repo):
@@ -165,8 +175,9 @@ class PerformFetch:
                     branch_name=branch.remote_head, repo=repository)
 
     def fetch_branch(self, repo_requested, branch_requested, year_requested):
-        repo = Repo(repo_requested)
+        print("REPO REQUESTED: ",repo_requested)
         repository = self.get_repo(repo_requested)
+        repo = Repo(repository.get_file_path())
         self.fetch_repo(repo, repository)
         active_branch = Branch.objects.get(pk=branch_requested)
         commit_diff_string = self.get_commit_diff_string(active_branch, repo)
@@ -176,12 +187,12 @@ class PerformFetch:
         active_branch.save()
 
     def fetch_latest_branch(self, repo_requested, year_requested):
-        repo = Repo(repo_requested)
         repository = self.get_repo(repo_requested)
+        repo = Repo(repository.get_file_path())
         self.fetch_repo(repo, repository)
-        repo_ = BasicRepoUtils()
-        active_branch = repo_.get_latest_branch(
+        active_branch = BasicRepoUtils.get_latest_branch(
             repo, Branch.objects.filter(repo__id=repository.id))
+
         commit_diff_string = self.get_commit_diff_string(active_branch, repo)
         self.save_commits(year_requested, repo,
                           commit_diff_string, active_branch, repository)
@@ -189,12 +200,12 @@ class PerformFetch:
         active_branch.save()
 
 
-'''
-API which fetches the requested branch
-'''
 
 
 class FetchBranchViewSet(viewsets.ViewSet):
+    '''
+    API which fetches the requested branch
+    '''
 
     def create(self, request):
         repo_requested = request.data['repo']
@@ -204,12 +215,11 @@ class FetchBranchViewSet(viewsets.ViewSet):
         return Response({"success": "True"})
 
 
-'''
-API which fetches all repos
-'''
-
 
 class FetchRepositories(APIView):
+    '''
+    API which fetches all repos
+    '''
 
     def get(self, request):
         for repo in Repository.objects.filter(archived=False):
@@ -217,12 +227,12 @@ class FetchRepositories(APIView):
         return Response({"success": "True"})
 
 
-'''
-API which lists all branches of the repo requested
-'''
-
 
 class RepositoryDetailViewSet(viewsets.ViewSet):
+    '''
+    API which lists all branches of the repo requested
+    '''
+
     slug = 'repo_id'
 
     def partial_update(self, request, pk=None):
@@ -234,9 +244,10 @@ class RepositoryDetailViewSet(viewsets.ViewSet):
 
     def retrieve(self, request, pk=None):
         repository = Repository.objects.get(id=pk)
-        repo_name = Repository.objects.get(id=pk).repo_name
-        repo = Repo(repo_name)
-        branches = BasicRepoUtils().sort_branches(
+        repo_name = repository.repo_name
+        repo_file_path = repository.get_file_path()
+        repo = Repo(repo_file_path)
+        branches = BasicRepoUtils.sort_branches(
             repo, Branch.objects.filter(repo__id=pk))
         PerformFetch().fetch_branch(
             repo_name, branches[0].id, datetime.datetime.now().year)
@@ -250,40 +261,42 @@ class RepositoryDetailViewSet(viewsets.ViewSet):
         return Response(response_data)
 
 
-'''
-Class which provides basic repository utilities
-'''
-
 
 class BasicRepoUtils:
-
-    def sort_branches(self, repo, branches):
+    '''
+    Class which provides basic repository utilities
+    '''
+    @staticmethod
+    def sort_branches(repo, branches):
         return sorted((branch for branch in branches), key=lambda branch: repo.rev_parse('origin/' + branch.branch_name).authored_datetime, reverse=True)
 
-    def get_latest_authored_date(self, repo_name):
+    @staticmethod
+    def get_latest_authored_date(repo_name):
         return Repository.objects.get(repo_name=repo_name).last_authored_date
 
-    def set_last_authored_date(self, repo, repository, branches):
+    @staticmethod
+    def set_last_authored_date(repo, repository, branches):
         repository.last_authored_date = repo.rev_parse(
-            'origin/' + self.get_latest_branch(repo, branches).branch_name).authored_datetime
+            'origin/' + BasicRepoUtils.get_latest_branch(repo, branches).branch_name).authored_datetime
         repository.save()
 
-    def get_latest_branch(self, repo, branches):
-        return self.sort_branches(repo, branches)[0]
-
-
-'''
-API which lists all branches of the repo requested
-'''
+    @staticmethod
+    def get_latest_branch(repo, branches):
+        return BasicRepoUtils.sort_branches(repo, branches)[0]
 
 
 class BranchViewSet(viewsets.ViewSet):
+    '''
+    API which lists all branches of the repo requested
+    '''
+
     slug = 'repo_id'
 
     def retrieve(self, request, pk=None):
         repo_name = Repository.objects.get(id=pk).repo_name
-        repo = Repo(repo_name)
-        branches = BasicRepoUtils().sort_branches(
+        repo_file_path = Repository.objects.get(id=pk).get_file_path()
+        repo = Repo(repo_file_path)
+        branches = BasicRepoUtils.sort_branches(
             repo, Branch.objects.filter(repo__id=pk))
         PerformFetch().fetch_branch(
             repo_name, branches[0].id, datetime.datetime.now().year)
@@ -291,25 +304,23 @@ class BranchViewSet(viewsets.ViewSet):
         return Response(serializer.data)
 
 
-'''
-API which lists all repos 
-'''
-
 
 class RepositoryListViewSet(viewsets.ViewSet):
-
+    '''
+    API which lists all repos 
+    '''
+    
     def list(self, request, pk=None):
         repos = Repository.objects.all()
         serializer = RepositorySerializer(repos, many=True)
         return Response(serializer.data)
 
 
-'''
-API which lists all developers
-'''
-
 
 class DeveloperListViewSet(viewsets.ViewSet):
+    '''
+    API which lists all developers
+    '''
 
     def list(self, request, pk=None):
         developer = Developer.objects.all()
@@ -317,13 +328,11 @@ class DeveloperListViewSet(viewsets.ViewSet):
         return Response(serializer.data)
 
 
-'''
-API which returns the details of commits of a branch
-
-'''
-
 
 class CommitDetailView(APIView):
+    '''
+    API which returns the details of commits of a branch
+    '''
 
     def get(self, request, *args, **kwargs):
 
@@ -334,29 +343,26 @@ class CommitDetailView(APIView):
         return Response(serializer.data)
 
 
-'''
-API which returns the details of commits of a developer
-
-'''
 
 
 class DeveloperCommitDetailView(APIView):
+    '''
+    API which returns the details of commits of a developer
+    '''
 
     def get(self, request, *args, **kwargs):
         distinct_commit_hash = CommitModel.objects.filter(author__id=kwargs.get('author'), date__date=kwargs.get(
             'date')).values('commit_hash').distinct().values('commit_hash', 'message', 'repo', 'total_files', 'total_lines', 'author')
-        print("D", distinct_commit_hash)
         serializer = DevCommitSerializer(distinct_commit_hash, many=True)
         return Response(serializer.data)
 
 
-'''
-API which returns the heatmap data of the developer and year requested
-
-'''
 
 
 class DeveloperGraphView(APIView):
+    '''
+    API which returns the heatmap data of the developer and year requested
+    '''
 
     def get(self, request, *args, **kwargs):
 
@@ -373,12 +379,11 @@ class DeveloperGraphView(APIView):
         return Response(serializer.data)
 
 
-'''
-API which returns top repos of given number
-
-'''
 
 class TopRepositories(APIView):
+    '''
+    API which returns top repos of given number
+    '''
 
     def get(self, request, *args, **kwargs):
         last_specified_day = datetime.datetime.today(
@@ -387,9 +392,10 @@ class TopRepositories(APIView):
 
         repositories = Repository.objects.filter(
             last_authored_date__gt=last_specified_day, archived=False)
+        
         repo_data = []
         for repo in repositories:
-            latest_branch = BasicRepoUtils().get_latest_branch(
+            latest_branch = BasicRepoUtils.get_latest_branch(
                 Repo(repo.repo_name), Branch.objects.filter(repo=repo))
             commits = CommitModel.objects.filter(
                 repo=repo, date__gt=last_specified_day, branch=latest_branch)
@@ -400,19 +406,23 @@ class TopRepositories(APIView):
             lines_sum = data.aggregate(lines_sum=Sum('sum'))
             serializer = GraphSerializer(data, many=True)
             repo_data.append(
-                {"repo": repo.repo_name, "commit_count": commit_count['commit_count'], 'lines_sum': lines_sum['lines_sum'], 'data': serializer.data})
+                {
+                    "repo": repo.repo_name, 
+                    "commit_count": commit_count['commit_count'], 
+                    'lines_sum': lines_sum['lines_sum'], 
+                    'data': serializer.data
+                })
+
         sorted_repos = sorted(
             repo_data, key=lambda x: x['commit_count'], reverse=True)
         return Response(sorted_repos[0:top_n])
 
 
-'''
-API which returns the heatmap data of the branch provided
-
-'''
-
 
 class GraphDatabyYear(APIView):
+    '''
+    API which returns the heatmap data of the branch provided
+    '''
 
     def get(self, request, *args, **kwargs):
         branch = Branch.objects.get(id=kwargs.get('branch'))
@@ -425,13 +435,11 @@ class GraphDatabyYear(APIView):
         return Response(serializer.data)
 
 
-'''
-API which returns the counts to render in dashboard
-
-'''
-
 
 class DashboardCount(APIView):
+    '''
+    API which returns the counts to render in dashboard
+    '''
 
     def get(self, request, *args, **kwargs):
         last_week = datetime.datetime.today().date()-datetime.timedelta(weeks=1)
@@ -447,13 +455,11 @@ class DashboardCount(APIView):
         return Response({"repositories_count": repositories_count, "stale_repositories_count": stale_repositories_count, "inactive_developers": inactive_developers, "developers_count": developers_count, "archived_repositories": archived_repositories})
 
 
-'''
-API which lists all inactive_developers
-
-'''
-
 
 class FetchInactiveDevelopers(APIView):
+    '''
+    API which lists all inactive_developers
+    '''
 
     def get(self, request, *args, **kwargs):
         last_week = datetime.datetime.today().date()-datetime.timedelta(weeks=1)
@@ -465,13 +471,11 @@ class FetchInactiveDevelopers(APIView):
         return Response(serializer.data)
 
 
-'''
-API which lists all the project_data of a developer
-
-'''
-
 
 class DeveloperDetailView(APIView):
+    '''
+    API which lists all the project_data of a developer
+    '''
 
     def get(self, request, *args, **kwargs):
         developer = Developer.objects.get(id=kwargs.get('developer'))

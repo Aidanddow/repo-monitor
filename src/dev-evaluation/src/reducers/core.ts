@@ -40,7 +40,7 @@ interface Loaders {
 const InitialcurrentRepostory = {
 
     id: 0,
-    repo_path: '',
+    repo_url: '',
     repo_name: '',
     developers: [],
     last_authored_date: '',

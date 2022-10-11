@@ -29,7 +29,7 @@ export default function BasicModal(props: Props) {
   const handleOpen = () => props.setOpen(true);
   const handleClose = () => props.setOpen(false);
   const dispatch = useDispatch();
-  const [repoPath, setRepoPath] = React.useState('');
+  const [repoUrl, setRepoUrl] = React.useState('');
   const [username, setUsername] = React.useState('');
   const [password, setPassword] = React.useState('');
 
@@ -37,7 +37,7 @@ export default function BasicModal(props: Props) {
     const payload:  AddRepo = {
         username,
         password,
-        repo_path: repoPath
+        repo_url : repoUrl
     }
     dispatch(actions.addRepo.request(payload));
 
@@ -61,8 +61,8 @@ export default function BasicModal(props: Props) {
           className='w-100 my-1'
           id="outlined-required"
           label="Git Repository URL(HTTPS)"
-          value={repoPath} 
-          onChange={(event: React.ChangeEvent<HTMLInputElement>)=> setRepoPath(event.currentTarget.value)}
+          value={repoUrl} 
+          onChange={(event: React.ChangeEvent<HTMLInputElement>)=> setRepoUrl(event.currentTarget.value)}
         />
         <TextField
           required
