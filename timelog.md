@@ -26,4 +26,8 @@
 * Monday 10/10/22 (4 hours): Worked on bug where react app wasn't rendering, the problem was Pipfile. Began work on changing the storage location of cloned repos to a separate folder. Met with Derek, and wrote up detailed minutes on meeting.
 
 * Tuesday 11/10/22 (3 hours): Completed work on moving cloned repos, refactored some code for legibility and efficiency, resolved merge conflicts.
+
 * Tuesday 11/10/22 (1.5 hours): Read documentation on GitPython, and started to test the functionality, trying to obtain a git diff between two commits.
+
+### Week 5
+* Monday 17/10/22 (2.5 hours): Met with Derek, wrote up minutes on meeting. Had a meeting with Tim Storer and Merilla, regarding their vision for the project. Wrote up minutes on that meeting, and started research on using GitLab API for project.
