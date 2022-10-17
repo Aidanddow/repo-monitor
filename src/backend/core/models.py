@@ -3,7 +3,7 @@ from email import message
 from django.db import models
 import os
 from django.contrib.auth.models import AbstractUser
-
+from core.repo_utils import BasicRepoUtils
 
 # Create your models here.
 class CustomUser(AbstractUser):
@@ -33,6 +33,23 @@ class Repository(models.Model):
 
     def get_file_path(self):
         return os.path.join("repos", self.repo_name)
+
+    def set_last_authored_date(self, repo, branches):
+        self.last_authored_date = repo.rev_parse(
+            'origin/' + BasicRepoUtils.get_latest_branch(repo, branches).branch_name).authored_datetime
+        self.save()
+
+    @staticmethod
+    def sort_branches(repo, branches):
+        return sorted((branch for branch in branches), 
+                        key=lambda branch: repo.rev_parse(f'origin/{branch.branch_name}').authored_datetime, 
+                        reverse=True)
+
+    @staticmethod
+    def get_latest_branch(repo, branches):
+        return BasicRepoUtils.sort_branches(repo, branches)[0]
+
+    
 
 class Branch(models.Model):
     branch_name = models.CharField(max_length=50)

@@ -1,13 +1,17 @@
 
+from django.db.models import Count, Sum
+
+from core.repo_utils import BasicRepoUtils
+from core.utils import  PerformFetch
+from core.models import Branch, Commit as CommitModel, Developer, Repository
+from core.serializers import BranchSerializer, DevCommitSerializer, CommitSerializer, DeveloperSerializer, RepositorySerializer, GraphSerializer
+
 import datetime
 import os
-from rest_framework.response import Response
-from rest_framework import viewsets
-from core.models import Branch, Commit as CommitModel, Developer, Repository
 from git import Repo
-from core.serializers import BranchSerializer, DevCommitSerializer, CommitSerializer, DeveloperSerializer, RepositorySerializer, GraphSerializer
+from rest_framework import viewsets
+from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.db.models import Count, Sum
 
 
 class AddRepositoryViewSet(viewsets.ViewSet):
@@ -18,8 +22,21 @@ class AddRepositoryViewSet(viewsets.ViewSet):
     -> It will store commits in branches 'main'/ 'master'
     '''
 
-    def get_url(self, repo_url):
-        return repo_url.split("//")[-1]
+    def create(self, request):
+        repo_url = request.data['repo_url']
+        repo_name = self.get_repo_name(repo_url)
+        repo_save_path = os.path.join("repos", repo_name)
+        self.clone_repo(request, repo_url, repo_save_path)
+        repo = Repo(repo_save_path)
+        self.fetch_repo(repo)
+        self.save_repo_model(repo_url, repo_name)
+        repo_model = Repository.objects.get(repo_name=repo_name)
+        self.process_branches(repo, repo_model)
+        repo_model.set_last_authored_date(repo, Branch.objects.filter(repo__id=repo_model.id))
+        
+        return Response({
+            "success": "True"
+        })
 
     def get_commits_from_branch(self, repo, branch):
         end_date = branch.commit.authored_datetime.date()
@@ -30,11 +47,12 @@ class AddRepositoryViewSet(viewsets.ViewSet):
     def process_commits(self, commits, branch, repository):
         for commit in commits:
             
-            author, _ = Developer.objects.get_or_create(username=commit.author)
-            repository.developers.add(author)
             branch_id, _ = Branch.objects.get_or_create(
                                 branch_name=branch.remote_head, 
                                 repo=repository )
+
+            author, _ = Developer.objects.get_or_create(username=commit.author)
+            repository.developers.add(author)
             
             commit_model = CommitModel({
                 "repo" : repository, 
@@ -51,9 +69,8 @@ class AddRepositoryViewSet(viewsets.ViewSet):
 
         current_branch = None
         for branch in repo.remote().refs:
+            Branch.objects.create(branch_name=branch.remote_head, repo=repo_model)
 
-            Branch.objects.create(
-                branch_name=branch.remote_head, repo=repo_model)
             if branch.remote_head in ['main', 'master'] and current_branch is None:
                 current_branch = branch
                 current_branch.last_fetch_date = datetime.datetime.now()
@@ -62,10 +79,10 @@ class AddRepositoryViewSet(viewsets.ViewSet):
         self.process_commits(commits, current_branch, repo_model)
         self.set_start_date(repo, repo_model, current_branch)
 
-    def set_start_date(self, repo, repository, initial_branch):
-        repository.start_date = list(repo.iter_commits(
+    def set_start_date(self, repo, repo_model, initial_branch):
+        repo_model.start_date = list(repo.iter_commits(
             initial_branch.remote_head))[-1].authored_datetime
-        repository.save()
+        repo_model.save()
 
     def save_repo_model(self, repo_url, repo_name):
         repo_serializer = RepositorySerializer(
@@ -77,20 +94,20 @@ class AddRepositoryViewSet(viewsets.ViewSet):
         repo_serializer.is_valid(raise_exception=True)
         repo_serializer.save()
 
-    def get_repo_url(self, request):
-        return request.data['repo_url']
-
     def fetch_repo(self, repo):
         repo.remotes.origin.fetch('+refs/heads/*:refs/remotes/origin/*')
 
     def get_repo_credenitals(self, request, repo_url):
         if username := request.data['username']:
-            repo_url = self.get_url(repo_url)
             password = request.data['password']
+            repo_url = self.get_url(repo_url)
             repo_url_with_cred = f"https://{username}:{password}@{repo_url}"
         else:
             repo_url_with_cred = repo_url
         return repo_url_with_cred
+
+    def get_url(self):
+        return self.repo_url.split("//")[-1]
 
     def clone_repo(self, request, repo_url, repo_save_path):
         repo_save_folder = os.path.dirname(repo_save_path)
@@ -99,107 +116,8 @@ class AddRepositoryViewSet(viewsets.ViewSet):
         repo_url_with_cred = self.get_repo_credenitals(request, repo_url)
         Repo.clone_from(repo_url_with_cred, to_path=repo_save_path, bare=True)
 
-    def create(self, request):
-        repo_url = self.get_repo_url(request)
-        repo_name = repo_url.split("/")[-1].split(".")[0]
-        repo_save_path = os.path.join("repos", repo_name)
-        self.clone_repo(request, repo_url, repo_save_path)
-        repo = Repo(repo_save_path)
-        self.fetch_repo(repo)
-        self.save_repo_model(repo_url, repo_name)
-        repo_model = Repository.objects.get(repo_name=repo_name)
-        self.process_branches(repo, repo_model)
-        BasicRepoUtils.set_last_authored_date(
-            repo, repo_model, Branch.objects.filter(repo__id=repo_model.id))
-        return Response( {
-            "success": "True"
-        })
-
-
-
-
-class PerformFetch:
-    '''
-    Functions related to fetch.
-    -> It will store commits in branch which is fetched
-    -> It will store additional branches if any
-    '''
-
-    def get_repo(self, repo_requested):
-        repository = Repository.objects.filter(repo_name=repo_requested)[0]
-        return repository
-
-    def fetch_repo(self, repo, repository):
-        repo.remotes.origin.fetch('+refs/heads/*:refs/remotes/origin/*')
-        self.save_new_branches(repo, repository)
-        
-        BasicRepoUtils.set_last_authored_date(
-            repo, repository, Branch.objects.filter(repo__id=repository.id))
-
-    def get_commit_diff_string(self, active_branch, repo):
-        commits_length = len(
-            CommitModel.objects.filter(branch=active_branch.id))
-        if(commits_length > 0):
-            commit_diff_string = CommitModel.objects.filter(branch=active_branch.id).order_by('-date')[0].commit_hash + \
-                '..' + repo.rev_parse('origin/' +
-                                      active_branch.branch_name).hexsha
-            return commit_diff_string
-        commit_diff_string = 'origin/' + active_branch.branch_name
-        return commit_diff_string
-
-    def get_commits_list(self, year, repo, commit_diff_string):
-        end_date = str(year) + '-12-31'
-        start_date = str(year-1) + '-01-01'
-
-        return list(repo.iter_commits(commit_diff_string, since=start_date, until=end_date))
-
-    def save_commits(self, year_requested, repo, commit_diff_string, active_branch, repository):
-        for commit in self.get_commits_list(year_requested, repo, commit_diff_string):
-            total_files = commit.stats.total['files']
-            total_lines = commit.stats.total['lines']
-            commit_id = commit.hexsha
-            branch_id = active_branch
-            message = commit.message
-            author = Developer.objects.get_or_create(username=commit.author)[0]
-            date = commit.authored_datetime
-            commit_modal = CommitModel(commit_hash=commit_id, repo=repository, branch=branch_id, date=date,
-                                       author=author, message=message, total_files=total_files, total_lines=total_lines)
-            commit_modal.save()
-
-    def save_new_branches(self, repo, repository):
-        for branch in repo.remote().refs:
-            branch_exist = Branch.objects.filter(
-                branch_name=branch.remote_head, repo=repository)
-            if len(branch_exist) == 0:
-                Branch.objects.create(
-                    branch_name=branch.remote_head, repo=repository)
-
-    def fetch_branch(self, repo_requested, branch_requested, year_requested):
-        print("REPO REQUESTED: ",repo_requested)
-        repository = self.get_repo(repo_requested)
-        repo = Repo(repository.get_file_path())
-        self.fetch_repo(repo, repository)
-        active_branch = Branch.objects.get(pk=branch_requested)
-        commit_diff_string = self.get_commit_diff_string(active_branch, repo)
-        self.save_commits(year_requested, repo,
-                          commit_diff_string, active_branch, repository)
-        active_branch.last_fetch_date = datetime.datetime.now()
-        active_branch.save()
-
-    def fetch_latest_branch(self, repo_requested, year_requested):
-        repository = self.get_repo(repo_requested)
-        repo = Repo(repository.get_file_path())
-        self.fetch_repo(repo, repository)
-        active_branch = BasicRepoUtils.get_latest_branch(
-            repo, Branch.objects.filter(repo__id=repository.id))
-
-        commit_diff_string = self.get_commit_diff_string(active_branch, repo)
-        self.save_commits(year_requested, repo,
-                          commit_diff_string, active_branch, repository)
-        active_branch.last_fetch_date = datetime.datetime.now()
-        active_branch.save()
-
-
+    def get_repo_name(self, url):
+        return url.split("/")[-1].split(".")[0]
 
 
 class FetchBranchViewSet(viewsets.ViewSet):
@@ -260,29 +178,6 @@ class RepositoryDetailViewSet(viewsets.ViewSet):
         }
         return Response(response_data)
 
-
-
-class BasicRepoUtils:
-    '''
-    Class which provides basic repository utilities
-    '''
-    @staticmethod
-    def sort_branches(repo, branches):
-        return sorted((branch for branch in branches), key=lambda branch: repo.rev_parse('origin/' + branch.branch_name).authored_datetime, reverse=True)
-
-    @staticmethod
-    def get_latest_authored_date(repo_name):
-        return Repository.objects.get(repo_name=repo_name).last_authored_date
-
-    @staticmethod
-    def set_last_authored_date(repo, repository, branches):
-        repository.last_authored_date = repo.rev_parse(
-            'origin/' + BasicRepoUtils.get_latest_branch(repo, branches).branch_name).authored_datetime
-        repository.save()
-
-    @staticmethod
-    def get_latest_branch(repo, branches):
-        return BasicRepoUtils.sort_branches(repo, branches)[0]
 
 
 class BranchViewSet(viewsets.ViewSet):
@@ -483,7 +378,7 @@ class DeveloperDetailView(APIView):
         projects_list = []
 
         for project in projects:
-            repo = Repo(project.repo_name)
+            repo = Repo(project.get_file_path())
             date = CommitModel.objects.filter(
                 author=developer, repo=project).order_by('-date')[0].date
             projects_list.append(
